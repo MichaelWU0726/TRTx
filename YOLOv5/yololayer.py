@@ -158,9 +158,6 @@ def focus(network, weights, inp, inch, outch, ksize, lname):
 
     return conv
 
-# def res_unit(network, weights, inp):
-#     cbl1 = fusedConvBlock(network, weights, inp, 48, 3, "model.1")
-#     cbl2 = fusedConvBlock(network, weights, cbl1.get_output(0), 96, 1, "model.2.cv1")
 
 def bottleneck(network, weights, inp, c1: int, c2: int, shortcut: bool, g: int, e: int, lname: str):
     conv1 = convBlock(network, weights, inp, int(float(c2)*e), 1,1,1, lname+".cv1")

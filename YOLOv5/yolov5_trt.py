@@ -8,8 +8,7 @@ import pycuda.autoinit
 import pycuda.driver as cuda
 import tensorrt as trt
 import threading
-import ctypes
-# import shutil
+import ctype
 from yolov5 import build_engine
 
 CONF_THRESH = 0.5
@@ -377,20 +376,21 @@ class Yolov5TRT(object):
         return boxes
 
 class InferThread(threading.Thread):
-    def __init__(self, wrapper, image_path_batch):
+    def __init__(self, wrapper, image_path_batch, output):
         threading.Thread.__init__(self)
         self.wrapper = wrapper
         self.image_path_batch = image_path_batch
+        self.output = output
 
     def run(self):
         batch_image_raw, use_time = self.wrapper.infer(
             self.wrapper.get_raw_image(self.image_path_batch))
         for i, img_path in enumerate(self.image_path_batch):
             parent, filename = os.path.split(img_path)
-            save_name = os.path.join('output', filename)
+            save_name = os.path.join(self.output, filename)
             # Save image
             cv2.imwrite(save_name, batch_image_raw[i])
-        print('input->{}, time->{:.2f}ms, saving into output/'.format(self.image_path_batch, use_time * 1000))
+        print('input->{}, time->{:.2f}ms, saving into {}'.format(self.image_path_batch, use_time * 1000, self.output))
 
 class WarmUpThread(threading.Thread):
     def __init__(self, wrapper):
@@ -433,9 +433,6 @@ if __name__ == "__main__":
                   "teddy bear",
                   "hair drier", "toothbrush"]
 
-    # if os.path.exists('output/'):
-    #     shutil.rmtree('output/')
-    # os.makedirs('output/')
     # a YoLov5TRT instance
     yolov5_wrapper = Yolov5TRT(engine_file_path, wts_file)
     try:
@@ -444,14 +441,14 @@ if __name__ == "__main__":
         image_dir = "images/"
         image_path_batches = get_img_path_batches(yolov5_wrapper.batch_size, image_dir)
 
-        # for i in range(10):
-        #     # create a new thread to do warm_up
-        #     thread1 = WarmUpThread(yolov5_wrapper)
-        #     thread1.start()
-        #     thread1.join()
+        for i in range(10):
+            # create a new thread to do warm_up
+            thread1 = WarmUpThread(yolov5_wrapper)
+            thread1.start()
+            thread1.join()
         for batch in image_path_batches:
             # create a new thread to do inference
-            thread1 = InferThread(yolov5_wrapper, batch)
+            thread1 = InferThread(yolov5_wrapper, batch, 'output')
             thread1.start()
             thread1.join()
     finally:

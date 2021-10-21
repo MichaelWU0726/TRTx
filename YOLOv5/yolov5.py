@@ -5,13 +5,14 @@ from Utils.common import GiB
 
 USE_FP16=False
 USE_INT8=False
-TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE)
+TRT_LOGGER = trt.Logger(trt.Logger.WARNNING)
 # Force init TensorRT plugins
 trt.init_libnvinfer_plugins(TRT_LOGGER, "")
 input_name = 'data'
 out_name = 'prob'
 
-# 计算CSP结构的宽度和深度，yolov5s结构中gw,gd系数分别为0.50和0.33,所以get_width(128,gw)等于64,get_depth(3,gd)等于1
+# Calculate the width and depth of CSP
+# For yolov5s, gw,gd=0.50,0.33, so get_width(128,gw) is 64,get_depth(3,gd) is 1
 def get_width(x: int, gw: float, divisor: int=8 ):
     """
     Using gw to control the number of kernels that must be multiples of 8.
@@ -70,7 +71,7 @@ def yolov5(network, wts_name):
     c3_9 = C3(network, weights, spp8.get_output(0), width_1024, width_1024, depth_3, False, 1, 0.5, "model.9")
     conv10 = convBlock(network, weights, c3_9.get_output(0), width_512, 1,1,1, "model.10")
 
-    #第一次上采样,32x->upsample->16x
+    #first upsample,32x->upsample->16x
     upsample11 = network.add_resize(conv10.get_output(0))
     assert upsample11, "Add upsample11 failed"
     upsample11.resize_mode = trt.ResizeMode.NEAREST
@@ -82,7 +83,7 @@ def yolov5(network, wts_name):
     c3_13 = C3(network, weights, cat12.get_output(0), width_1024, width_512, depth_3, False, 1, 0.5, "model.13")
     conv14 = convBlock(network, weights, c3_13.get_output(0), width_256, 1, 1, 1, "model.14")
 
-    #第二次上采样,16x->upsample->8x
+    #second upsample,16x->upsample->8x
     upsample15 = network.add_resize(conv14.get_output(0))
     assert upsample15, "Add upsample15 failed"
     upsample15.resize_mode = trt.ResizeMode.NEAREST
@@ -114,41 +115,15 @@ def yolov5(network, wts_name):
     dets = [det0.get_output(0),det1.get_output(0),det2.get_output(0)]
     yolo = addYoloLayer(network, weights, "model.24", dets)
     assert yolo, "Add Yolo failed"
-    # creator = trt.get_plugin_registry().get_plugin_creator('YoloLayer_TRT', "1")
-    # plugin_data = creator.field_names
-    # assert plugin_data.pop(), plugin_data.pop()
-    # plugin = creator.create_plugin(name='yololayer', field_collection=plugin_data)
-    # yolo = network.add_plugin_v2(inputs=dets, plugin=plugin)
-    yolo.get_output(0).name = out_name
-    network.mark_output(yolo.get_output(0))
-
-    # det0.get_output(0).name = "det0"
-    # network.mark_output(det0.get_output(0))
-    # det1.get_output(0).name = "det1"
-    # network.mark_output(det1.get_output(0))
-    # det2.get_output(0).name = "det2"
-    # network.mark_output(det2.get_output(0))
 
     return network
 
 
-def build_engine(wts_name, engine_file='', dynamic_shapes={},max_batch_size=1):
+def build_engine(wts_name, engine_file=''):
     with trt.Builder(TRT_LOGGER) as builder, builder.create_network() as network, builder.create_builder_config() as config:
         config.max_workspace_size = GiB(3)
         # default = 1 for fixed batch size
         builder.max_batch_size = 1
-
-        # if len(dynamic_shapes) > 0:
-        #     print(f"===> using dynamic shapes: {str(dynamic_shapes)}")
-        #     builder.max_batch_size = max_batch_size
-        #     profile = builder.create_optimization_profile()
-        #
-        #     # set profile shape for input binding
-        #     for binding_name, dynamic_shape in dynamic_shapes.items():
-        #         min_shape, opt_shape, max_shape = dynamic_shape
-        #         profile.set_shape(
-        #             binding_name, min_shape, opt_shape, max_shape)
-        #     config.add_optimization_profile(profile)
 
         if builder.platform_has_fast_fp16 and USE_FP16:
             config.set_flag(trt.BuilderFlag.FP16)
@@ -179,7 +154,6 @@ def get_engine(wts_name, engine_file, load=True):
                 trt.Runtime(TRT_LOGGER) as runtime:
             engine = runtime.deserialize_cuda_engine(f.read())
     else:
-        # 根据情况添加并修改参数
         engine = build_engine(wts_name, engine_file)
     return engine
 
@@ -221,7 +195,6 @@ def parse_arg(argc: int, argv):
 def main(wts_name, engine_file):
     input_name = "data"
     output_name = "prob"
-    batch_size = 1
     PLUGIN_LIBRARY = "./libmyplugins.so"
     ctypes.CDLL(PLUGIN_LIBRARY)
 
