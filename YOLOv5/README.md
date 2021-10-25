@@ -2,7 +2,7 @@
 
 The Pytorch implementation is [ultralytics/yolov5](https://github.com/ultralytics/yolov5).  Wang-xinyu use TensorRT C++ API to define yolov5 network, build engine and infer in [wang-xinyu/tensorrtx/yolov5](https://github.com/wang-xinyu/tensorrtx/tree/master/yolov5).
 
-In this case, I define YOLOv5 network and build engine by TensorRT Python API. If you don't care the effect of the performance on language itself, you can also use the python script provided by me. Otherwise you can refer to `yolov5.cpp` in [wang-xinyu/tensorrtx/yolov5](https://github.com/wang-xinyu/tensorrtx/tree/master/yolov5)
+In this case, I define YOLOv5 network and build engine by TensorRT Python API. If you don't care the effect of the inferring performance on language itself, you can also use the python script provided by me. Otherwise you can refer to `yolov5.cpp` in [wang-xinyu/tensorrtx/yolov5](https://github.com/wang-xinyu/tensorrtx/tree/master/yolov5)
 
 ## Different versions of yolov5
 
