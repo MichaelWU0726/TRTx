@@ -32,7 +32,7 @@ Currently, we support yolov5 v1.0(yolov5s only), v2.0, v3.0, v3.1, v4.0 and v5.0
 
    ```shell
    git clone -b v5.0 https://github.com/ultralytics/yolov5.git
-   git clone https://github.com/wang-xinyu/tensorrtx.git
+   git clone https://github.com/MichaelWU0726/TRTx.git
    // download https://github.com/ultralytics/yolov5/releases/download/v5.0/yolov5s.pt
    cp {TRTx}/yolov5/gen_wts.py {ultralytics}/yolov5
    cd {ultralytics}/yolov5
@@ -43,14 +43,14 @@ Currently, we support yolov5 v1.0(yolov5s only), v2.0, v3.0, v3.1, v4.0 and v5.0
 2. build `TRTx/yolov5` and run
 
    ```shell
-   cd {tensorrtx}/yolov5/
+   cd {TRTx}/plugins/
    // update CLASS_NUM in yololayer.h if your model is trained on custom dataset
    mkdir build
    cd build
-   cp {TRTx}/yolov5/yolov5s.wts {tensorrtx}/yolov5/build
+   cp {TRTx}/yolov5/yolov5s.wts {TRTx}/plugins/build
    cmake ..
-   make //generate 'libmyplugins.so'
-   cp {tensorrtx}/yolov5/build/libmyplugins.so {TRTx}/yolov5 //. has been provided in this repo so you can skip this step
+   make //generate 'libyololayer_plugins.so'
+   cp {tensorrtx}/yolov5/build/libyololayer_plugins.so {TRTx}/yolov5 //.so has been provided in this repo so you can skip this step
    cd {TRTx}/yolov5/
    python yolov5.py // serialize model to plan file, you can change the arguments values of main()
    python yolov5_trt.py // deserialize and run inference, the images in [image folder] will be processed.

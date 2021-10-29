@@ -403,14 +403,14 @@ class WarmUpThread(threading.Thread):
 
 if __name__ == "__main__":
     # load custom plugin and engine
-    PLUGIN_LIBRARY = "./libmyplugins.so"
+    PLUGIN_LIBRARY = "./libyololayer_plugins.so"
     engine_file_path = "./yolov5s.engine"
     wts_file = "./yolov5s.wts"
 
-    if len(sys.argv) > 1:
-        engine_file_path = sys.argv[1]
-    if len(sys.argv) > 2:
-        PLUGIN_LIBRARY = sys.argv[2]
+    # if len(sys.argv) > 1:
+    #     engine_file_path = sys.argv[1]
+    # if len(sys.argv) > 2:
+    #     PLUGIN_LIBRARY = sys.argv[2]
 
     ctypes.CDLL(PLUGIN_LIBRARY)
 

@@ -9,6 +9,9 @@ except NameError:
 
 EXPLICIT_BATCH = 1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
 
+def MiB(val):
+    return val * 1 << 20
+
 def GiB(val):
     return val * 1 << 30
 

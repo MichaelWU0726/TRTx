@@ -1,5 +1,4 @@
 import ctypes
-# import pycuda.autoinit
 from yololayer import *
 from Utils.common import GiB
 
@@ -131,8 +130,8 @@ def build_engine(wts_name, engine_file=''):
             config.set_flag(trt.BuilderFlag.INT8)
             calibrator = trt.IInt8EntropyCalibrator2()
             # TO DO
-            print('Mode INT8 is not emplement !')
-            raise NotImplementedError
+            assert 0,'Mode INT8 is not emplemented !'
+            # raise NotImplementedError
 
         # Populate the network using weights from the PyTorch model.
         net = yolov5(network, wts_name)
@@ -195,7 +194,7 @@ def parse_arg(argc: int, argv):
 def main(wts_name, engine_file):
     input_name = "data"
     output_name = "prob"
-    PLUGIN_LIBRARY = "./libmyplugins.so"
+    PLUGIN_LIBRARY = "./libyololayer_plugins.so"
     ctypes.CDLL(PLUGIN_LIBRARY)
 
     flag = build_engine(wts_name, engine_file)

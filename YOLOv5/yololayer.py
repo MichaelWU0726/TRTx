@@ -1,40 +1,26 @@
 import struct
 import sys
+from typing import List, Any
+
 import numpy as np
 import tensorrt as trt
 
 
 class Yolo(object):
-    INPUT_NAME = "input_img"
-    # INPUT_SHAPE = (640, 640)
     INPUT_H, INPUT_W = 640, 640  # // yolov5's input height and width must be divisible by 32
-    OUTPUT_ARGS = {'out_1': (1, 25200, 6),
-                  'out_2': (1, 3, 80, 80, 6),
-                  'out_3': (1, 3, 40, 40, 6),
-                  'out_4': (1, 3, 20, 20, 6)}
     DTYPE = trt.float32
     CHECK_COUNT = 3
-    IGNORE_THRESH = 0.1
 
     CLASS_NUM = 80
     MAX_OUTPUT_BBOX_COUNT = 1000
-    CONF_THRESH = 0.5
-    IOU_THRESHOLD = 0.4
-    GW = 0.50
-    GD = 0.33
+    GW: float = 0.50
+    GD: float=0.33
 
 
 class YoloKernel(object):
     width = 256
     height = 256
     anchors = []
-
-
-class Detection(object):
-    LOCATIONS = 4
-    bbox = [0] * LOCATIONS  # center_x center_y w h
-    conf = 0.0  # bbox_conf * cls_conf
-    class_id = 0.0
 
 
 def loadWeights(wts_file:str):
@@ -242,7 +228,7 @@ def addYoloLayer(network, weights, lname, dets):
     anchors = getAnchors(weights, lname)
 
     def get_trt_plugin(plugin_name):
-        netinfo = np.array([Yolo.CLASS_NUM, Yolo.INPUT_W, Yolo.INPUT_H, Yolo.MAX_OUTPUT_BBOX_COUNT])
+        netinfo = np.ascontiguousarray([Yolo.CLASS_NUM, Yolo.INPUT_W, Yolo.INPUT_H, Yolo.MAX_OUTPUT_BBOX_COUNT])
         scale = 8
         kernels = []
         for i in range(len(anchors)):
@@ -252,7 +238,7 @@ def addYoloLayer(network, weights, lname, dets):
             kernel.anchors = anchors[i]
             kernels.append(kernel)
             scale *= 2
-        kernels = np.array(kernels)
+        kernels = np.ascontiguousarray(kernels)
 
         field_collect = trt.PluginFieldCollection()
 
@@ -270,4 +256,32 @@ def addYoloLayer(network, weights, lname, dets):
 
     trt_plugin = get_trt_plugin("yololayer")
     yolo = network.add_plugin_v2(inputs=dets, plugin=trt_plugin)
+    return yolo
+
+def addYoloLayer_v2(network, weights, lname, dets):
+    # refer to
+    # https://github.com/jkjung-avt/tensorrt_demos/blob/ca6ac81b4c7558122df3ff3018479412828a88a4/yolo/plugins.py#L82-L146
+    plugin_creator = trt.get_plugin_registry().get_plugin_creator('YoloLayer_TRT', "1")
+    assert plugin_creator, "Plugin YoloLayer_TRT isn't registried"
+    anchors = getAnchors(weights, lname)
+
+    netinfo = np.array([Yolo.CLASS_NUM, Yolo.INPUT_W, Yolo.INPUT_H, Yolo.MAX_OUTPUT_BBOX_COUNT],dtype=np.int32)
+    field_collect = trt.PluginFieldCollection()
+    field_collect.append(trt.PluginField("netinfo", netinfo, trt.PluginFieldType.INT32))
+    scale = 8
+    for i in range(len(anchors)):
+        width = Yolo.INPUT_W // scale
+        height = Yolo.INPUT_H // scale
+        yoloW = np.array(width,dtype=np.int32)
+        yoloH = np.array(height,dtype=np.int32)
+        anchor = np.ascontiguousarray(anchors[i],dtype=np.float32)
+        field_collect.append(trt.PluginField("yoloW", yoloW, trt.PluginFieldType.INT32))
+        field_collect.append(trt.PluginField("yoloH", yoloH, trt.PluginFieldType.INT32))
+        field_collect.append(trt.PluginField("anchor", anchor, trt.PluginFieldType.FLOAT32))
+        scale *= 2
+
+    plugin = plugin_creator.create_plugin(name="yololayer", field_collection=field_collect)
+    assert plugin, "Create yololayer plugin failed"
+
+    yolo = network.add_plugin_v2(inputs=dets, plugin=plugin)
     return yolo
