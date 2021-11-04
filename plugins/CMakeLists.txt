@@ -27,13 +27,8 @@ link_directories(/usr/local/tensorrt/lib/)
 #set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++11 -Wall -Ofast -Wfatal-errors -D_MWAITXINTRIN_H_INCLUDED")
 
-cuda_add_library(yololayer_plugins SHARED ${PROJECT_SOURCE_DIR}/yololayer.cu)
-target_link_libraries(yololayer_plugins nvinfer cudart)
-
-# add_executable(yolov5s ${PROJECT_SOURCE_DIR}/calibrator.cpp ${PROJECT_SOURCE_DIR}/yolov5.cpp)
-# target_link_libraries(yolov5s nvinfer)
-# target_link_libraries(yolov5s cudart)
-# target_link_libraries(yolov5s yololayer_plugins)
+cuda_add_library(v5s_plugins SHARED ${PROJECT_SOURCE_DIR}/yololayer.cu)
+target_link_libraries(v5s_plugins nvinfer cudart)
 
 if(UNIX)
 add_definitions(-O2 -pthread)

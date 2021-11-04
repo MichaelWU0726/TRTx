@@ -7,12 +7,16 @@ import tensorrt as trt
 
 
 class Yolo(object):
+    INPUT_NAME = "input_img"
     INPUT_H, INPUT_W = 640, 640  # // yolov5's input height and width must be divisible by 32
     DTYPE = trt.float32
     CHECK_COUNT = 3
+    IGNORE_THRESH = 0.1
 
     CLASS_NUM = 80
     MAX_OUTPUT_BBOX_COUNT = 1000
+    CONF_THRESH = 0.5
+    IOU_THRESHOLD = 0.4
     GW: float = 0.50
     GD: float=0.33
 
@@ -21,6 +25,13 @@ class YoloKernel(object):
     width = 256
     height = 256
     anchors = []
+
+
+class Detection(object):
+    LOCATIONS = 4
+    bbox = [0] * LOCATIONS  # center_x center_y w h
+    conf = 0.0  # bbox_conf * cls_conf
+    class_id = 0.0
 
 
 def loadWeights(wts_file:str):
@@ -144,6 +155,9 @@ def focus(network, weights, inp, inch, outch, ksize, lname):
 
     return conv
 
+# def res_unit(network, weights, inp):
+#     cbl1 = fusedConvBlock(network, weights, inp, 48, 3, "model.1")
+#     cbl2 = fusedConvBlock(network, weights, cbl1.get_output(0), 96, 1, "model.2.cv1")
 
 def bottleneck(network, weights, inp, c1: int, c2: int, shortcut: bool, g: int, e: int, lname: str):
     conv1 = convBlock(network, weights, inp, int(float(c2)*e), 1,1,1, lname+".cv1")
@@ -228,27 +242,20 @@ def addYoloLayer(network, weights, lname, dets):
     anchors = getAnchors(weights, lname)
 
     def get_trt_plugin(plugin_name):
-        netinfo = np.ascontiguousarray([Yolo.CLASS_NUM, Yolo.INPUT_W, Yolo.INPUT_H, Yolo.MAX_OUTPUT_BBOX_COUNT])
+        netinfo = np.array([Yolo.CLASS_NUM, Yolo.INPUT_W, Yolo.INPUT_H, Yolo.MAX_OUTPUT_BBOX_COUNT],dtype=np.int32)
+        fields = [trt.PluginField("netinfo", netinfo, trt.PluginFieldType.FLOAT32)]
+        
         scale = 8
-        kernels = []
         for i in range(len(anchors)):
             kernel = YoloKernel()
             kernel.width = Yolo.INPUT_W / scale
             kernel.height = Yolo.INPUT_H / scale
             kernel.anchors = anchors[i]
-            kernels.append(kernel)
+            kernel_field = trt.PluginField(f"kernel_{i}", np.ascontiguousarray(kernel), trt.PluginFieldType.FLOAT32)
+            fields.append(kernel_field)
             scale *= 2
-        kernels = np.ascontiguousarray(kernels)
 
-        field_collect = trt.PluginFieldCollection()
-
-        netinfo_field = trt.PluginField("netinfo", netinfo, trt.PluginFieldType.FLOAT32)
-        assert netinfo_field,"create netinfo failed"
-        field_collect.append(netinfo_field)
-
-        kernels_field = trt.PluginField("kernels", kernels, trt.PluginFieldType.FLOAT32)
-        assert kernels_field,"create kernels failed"
-        field_collect.append(kernels_field)
+        field_collect = trt.PluginFieldCollection(fields)
 
         plugin = plugin_creator.create_plugin(name=plugin_name, field_collection=field_collect)
         assert plugin, "Create {} layer failed".format(plugin_name)
@@ -272,11 +279,9 @@ def addYoloLayer_v2(network, weights, lname, dets):
     for i in range(len(anchors)):
         width = Yolo.INPUT_W // scale
         height = Yolo.INPUT_H // scale
-        yoloW = np.array(width,dtype=np.int32)
-        yoloH = np.array(height,dtype=np.int32)
+        wh = np.array([width,height],dtype=np.float32)
         anchor = np.ascontiguousarray(anchors[i],dtype=np.float32)
-        field_collect.append(trt.PluginField("yoloW", yoloW, trt.PluginFieldType.INT32))
-        field_collect.append(trt.PluginField("yoloH", yoloH, trt.PluginFieldType.INT32))
+        field_collect.append(trt.PluginField("wh", wh, trt.PluginFieldType.FLOAT32))
         field_collect.append(trt.PluginField("anchor", anchor, trt.PluginFieldType.FLOAT32))
         scale *= 2
 

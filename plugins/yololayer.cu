@@ -286,43 +286,47 @@ namespace nvinfer1
 
     IPluginV2IOExt* YoloPluginCreator::createPlugin(const char* name, const PluginFieldCollection* fc) TRT_NOEXCEPT
     {
-        assert(fc->nbFields == 3*3+1); //yolov5s has 3 groups.
+        assert(fc->nbFields == CHECK_COUNT*2+1); //yolov5s has 3 groups.
         assert(strcmp(fc->fields[0].name, "netinfo") == 0);
-        assert(strcmp(fc->fields[1].name, "yoloW") == 0);
-        assert(strcmp(fc->fields[2].name, "yoloH") == 0);
-        assert(strcmp(fc->fields[3].name, "anchor") == 0);
-        const PluginField* fields = fc->fields;
-        int *p_netinfo = (int*)(fields[0].data);
+        assert(strcmp(fc->fields[1].name, "wh_0") == 0);
+        assert(strcmp(fc->fields[2].name, "anchor_0") == 0);
+        // assert(strcmp(fc->fields[3].name, "kernel_2") == 0);
+        // const PluginField* fields = fc->fields;
+        int *p_netinfo = (int*)(fc->fields[0].data);
         int class_count = p_netinfo[0];
         int input_w = p_netinfo[1];
         int input_h = p_netinfo[2];
         int max_output_object_count = p_netinfo[3];
-        std::vector<Yolo::YoloKernel> kernels(3); //the anchor of yolov5s has 3 groups.
+        std::vector<Yolo::YoloKernel> kernels(CHECK_COUNT); //the anchor of yolov5s has 3 groups.
         for (int i = 1; i < fc->nbFields; ++i)
         {
+            if (i%2!=0)
             Yolo::YoloKernel kernel;
-            const char* attrName = fields[i].name;
-            if (!strcmp(attrName, "yoloW"))
+            const char* attrName = fc->fields[i].name;
+            if (!strcmp(attrName, "wh"))
             {
-                assert(fields[i].type == PluginFieldType::kINT32);
-                kernel.width = *(static_cast<const int*>(fields[i].data));
-            }
-            else if (!strcmp(attrName, "yoloH"))
-            {
-                assert(fields[i].type == PluginFieldType::kINT32);
-                kernel.height = *(static_cast<const int*>(fields[i].data));
+                assert(fc->fields[i].type == PluginFieldType::kFLOAT32);
+                int *p_yolo = (int*)(fc->fields[i].data);
+                kernel.width = p_yolo[0];
+                kernel.height = p_yolo[1];
             }
             else if (!strcmp(attrName, "anchor"))
             {
-                assert(fields[i].type == PluginFieldType::kFLOAT32);
-                memcpy(kernel.anchors, static_cast<const float*>(fields[i].data), CHECK_COUNT * 2 * sizeof(float));
+                assert(fc->fields[i].type == PluginFieldType::kFLOAT32);
+                memcpy(kernel.anchors, static_cast<const float*>(fc->fields[i].data), CHECK_COUNT * 2 * sizeof(float));
             }
             else
             {
                 std::cerr <<  "Unknown attribute: " << attrName << std::endl;
                 assert(0);
             }
-            kernels.push_back(kernel);
+            if (i%2 == 0){
+                kernels[i/2-1] = kernel;
+            }
+            else if(i%2 == 1){
+                int *p_yolo = (int*)(fc->fields[i].data);
+                std::cout << i << ": " << p_yolo[0] << " " << p_yolo[1] << std::endl;
+            }
         }
         YoloLayerPlugin* obj = new YoloLayerPlugin(class_count, input_w, input_h, max_output_object_count, kernels);
         obj->setPluginNamespace(mNamespace.c_str());
@@ -338,4 +342,3 @@ namespace nvinfer1
         return obj;
     }
 }
-
