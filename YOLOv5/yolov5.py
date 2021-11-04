@@ -112,7 +112,7 @@ def yolov5(network, wts_name):
                                       weights["model.24.m.2.weight"], weights["model.24.m.2.bias"])
 
     dets = [det0.get_output(0),det1.get_output(0),det2.get_output(0)]
-    yolo = addYoloLayer(network, weights, "model.24", dets)
+    yolo = addYoloLayer_v2(network, weights, "model.24", dets)
     assert yolo, "Add Yolo failed"
 
     return network
