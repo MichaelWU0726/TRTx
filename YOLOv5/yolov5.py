@@ -192,9 +192,7 @@ def parse_arg(argc: int, argv):
 
 
 def main(wts_name, engine_file):
-    input_name = "data"
-    output_name = "prob"
-    PLUGIN_LIBRARY = "./libyololayer_plugins.so"
+    PLUGIN_LIBRARY = "./build/libyolo_plugins.so"
     ctypes.CDLL(PLUGIN_LIBRARY)
 
     flag = build_engine(wts_name, engine_file)

@@ -19,6 +19,7 @@ Currently, we support yolov5 v1.0(yolov5s only), v2.0, v3.0, v3.1, v4.0 and v5.0
 
 - Choose the model s/m/l/x/s6/m6/l6/x6 from command line arguments.
 - Input shape defined in `yololayer.py`
+- Number of anchor groups `CHECKCOUNT` defined in `yololayer.py` and `plugins/yololayer.h`
 - Number of classes defined in `yololayer.py`, **DO NOT FORGET TO ADAPT THIS, If using your own model**
 - INT8/FP16/FP32 can be selected by the macro in `yolov5.py`, **INT8 need more steps, pls follow `How to Run` first and then go the `INT8 Quantization` below**
 - GPU id can be selected by `__init__()` of class `Yolov5TRT` in `yolov5_trt.py`
@@ -28,7 +29,7 @@ Currently, we support yolov5 v1.0(yolov5s only), v2.0, v3.0, v3.1, v4.0 and v5.0
 
 ## How to Run, yolov5s as example
 
-1. generate .wts from pytorch with .pt, or download .wts from model zoo.(.wts has been provided in this repo so you can skip this step if you use yolov5s)
+1. generate .wts from pytorch with .pt, or download .wts from model zoo.(.wts of v5s has been provided in this repo so you can skip this step if you use `yolov5s`)
 
    ```shell
    git clone -b v5.0 https://github.com/ultralytics/yolov5.git
@@ -40,23 +41,27 @@ Currently, we support yolov5 v1.0(yolov5s only), v2.0, v3.0, v3.1, v4.0 and v5.0
    // a file 'yolov5s.wts' will be generated.
    ```
    
-2. build `TRTx/yolov5` and run
+2. build plugin and generate engine.(`.so` of plugin has been provided in this repo so you can skip step 1-7)
 
    ```shell
    cd {TRTx}/plugins/
-   // update CLASS_NUM in yololayer.h if your model is trained on custom dataset
+   // update CLASS_NUM in 'yololayer.py' if your model is trained on custom dataset
    mkdir build
    cd build
-   cp {TRTx}/yolov5/yolov5s.wts {TRTx}/plugins/build
+   cp {ultralytics}/yolov5/yolov5s.wts {TRTx}/yolov5
    cmake ..
-   make //generate 'libyololayer_plugins.so'
-   cp {tensorrtx}/yolov5/build/libyololayer_plugins.so {TRTx}/yolov5 //.so has been provided in this repo so you can skip this step
+   make //generate 'libyolo_plugins.so'
    cd {TRTx}/yolov5/
    python yolov5.py // serialize model to plan file, you can change the arguments values of main()
+   ```
+   
+3. run to infer.
+
+   ```shell
    python yolov5_trt.py // deserialize and run inference, the images in [image folder] will be processed.
    ```
 
-3. check the images generated, as follows: `zidane.jpg` and `bus.jpg`
+4. check the images generated, as follows: `zidane.jpg` and `bus.jpg`
 
 ## INT8 Quantization
 

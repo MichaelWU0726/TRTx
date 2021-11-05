@@ -10,6 +10,7 @@ import tensorrt as trt
 import threading
 import ctype
 from yolov5 import build_engine
+import shutil
 
 CONF_THRESH = 0.5
 IOU_THRESHOLD = 0.4
@@ -403,7 +404,7 @@ class WarmUpThread(threading.Thread):
 
 if __name__ == "__main__":
     # load custom plugin and engine
-    PLUGIN_LIBRARY = "./libyololayer_plugins.so"
+    PLUGIN_LIBRARY = "./build/libyolo_plugins.so"
     engine_file_path = "./yolov5s.engine"
     wts_file = "./yolov5s.wts"
 
@@ -433,6 +434,9 @@ if __name__ == "__main__":
                   "teddy bear",
                   "hair drier", "toothbrush"]
 
+    if os.path.exists('output/'):
+        shutil.rmtree('output/')
+    os.makedirs('output/')
     # a YoLov5TRT instance
     yolov5_wrapper = Yolov5TRT(engine_file_path, wts_file)
     try:

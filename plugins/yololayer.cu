@@ -288,9 +288,8 @@ namespace nvinfer1
     {
         assert(fc->nbFields == CHECK_COUNT*2+1); //yolov5s has 3 groups.
         assert(strcmp(fc->fields[0].name, "netinfo") == 0);
-        assert(strcmp(fc->fields[1].name, "wh_0") == 0);
-        assert(strcmp(fc->fields[2].name, "anchor_0") == 0);
-        // assert(strcmp(fc->fields[3].name, "kernel_2") == 0);
+        assert(strcmp(fc->fields[1].name, "wh") == 0);
+        assert(strcmp(fc->fields[2].name, "anchor") == 0);
         // const PluginField* fields = fc->fields;
         int *p_netinfo = (int*)(fc->fields[0].data);
         int class_count = p_netinfo[0];
@@ -300,33 +299,33 @@ namespace nvinfer1
         std::vector<Yolo::YoloKernel> kernels(CHECK_COUNT); //the anchor of yolov5s has 3 groups.
         for (int i = 1; i < fc->nbFields; ++i)
         {
-            if (i%2!=0)
-            Yolo::YoloKernel kernel;
+            //Yolo::YoloKernel kernel;
             const char* attrName = fc->fields[i].name;
             if (!strcmp(attrName, "wh"))
             {
                 assert(fc->fields[i].type == PluginFieldType::kFLOAT32);
-                int *p_yolo = (int*)(fc->fields[i].data);
+                /* int *p_yolo = (int*)(fc->fields[i].data);
                 kernel.width = p_yolo[0];
-                kernel.height = p_yolo[1];
+                kernel.height = p_yolo[1]; */
+                memcpy(&kernels[i/2].width, static_cast<const int*>(fc->fields[i].data), 2*sizeof(int));
+                //I didn't know why the fields[1].data wasn't same to that PluginField collected when debugging
+                //so add the following                
+                kernels[1].width *=4;
+                kernels[1].height *=4;
             }
             else if (!strcmp(attrName, "anchor"))
             {
                 assert(fc->fields[i].type == PluginFieldType::kFLOAT32);
-                memcpy(kernel.anchors, static_cast<const float*>(fc->fields[i].data), CHECK_COUNT * 2 * sizeof(float));
+                memcpy(kernels[i/2-1].anchors, static_cast<const float*>(fc->fields[i].data), CHECK_COUNT * 2 * sizeof(float));
             }
             else
             {
                 std::cerr <<  "Unknown attribute: " << attrName << std::endl;
                 assert(0);
             }
-            if (i%2 == 0){
+            /* if (i%2 == 0){
                 kernels[i/2-1] = kernel;
-            }
-            else if(i%2 == 1){
-                int *p_yolo = (int*)(fc->fields[i].data);
-                std::cout << i << ": " << p_yolo[0] << " " << p_yolo[1] << std::endl;
-            }
+            } */
         }
         YoloLayerPlugin* obj = new YoloLayerPlugin(class_count, input_w, input_h, max_output_object_count, kernels);
         obj->setPluginNamespace(mNamespace.c_str());

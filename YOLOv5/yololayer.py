@@ -279,9 +279,9 @@ def addYoloLayer_v2(network, weights, lname, dets):
     for i in range(len(anchors)):
         width = Yolo.INPUT_W // scale
         height = Yolo.INPUT_H // scale
-        wh = np.array([width,height],dtype=np.float32)
+        wh = np.array([width,height],dtype=np.int32)
         anchor = np.ascontiguousarray(anchors[i],dtype=np.float32)
-        field_collect.append(trt.PluginField("wh", wh, trt.PluginFieldType.FLOAT32))
+        field_collect.append(trt.PluginField("wh", wh, trt.PluginFieldType.INT32))
         field_collect.append(trt.PluginField("anchor", anchor, trt.PluginFieldType.FLOAT32))
         scale *= 2
 
