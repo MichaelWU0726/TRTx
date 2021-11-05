@@ -310,8 +310,10 @@ namespace nvinfer1
                 memcpy(&kernels[i/2].width, static_cast<const int*>(fc->fields[i].data), 2*sizeof(int));
                 //I didn't know why the fields[1].data wasn't same to that PluginField collected when debugging
                 //so add the following                
-                kernels[1].width *=4;
-                kernels[1].height *=4;
+                if (i==1){
+                    kernels[i/2].width *=4;
+                    kernels[i/2].height *=4;
+                }
             }
             else if (!strcmp(attrName, "anchor"))
             {
