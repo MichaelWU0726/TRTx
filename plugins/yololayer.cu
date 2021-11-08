@@ -303,7 +303,7 @@ namespace nvinfer1
             const char* attrName = fc->fields[i].name;
             if (!strcmp(attrName, "wh"))
             {
-                assert(fc->fields[i].type == PluginFieldType::kFLOAT32);
+                assert(fc->fields[i].type == PluginFieldType::kINT32);
                 /* int *p_yolo = (int*)(fc->fields[i].data);
                 kernel.width = p_yolo[0];
                 kernel.height = p_yolo[1]; */
