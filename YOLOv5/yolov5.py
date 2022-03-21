@@ -114,6 +114,10 @@ def yolov5(network, wts_name):
     dets = [det0.get_output(0),det1.get_output(0),det2.get_output(0)]
     yolo = addYoloLayer_v2(network, weights, "model.24", dets)
     assert yolo, "Add Yolo failed"
+    yolo_tensor = yolo.get_output(0)
+    # print('yolo: ', yolo.get_output(0).shape)
+    yolo_tensor.name = out_name
+    network.mark_output(yolo_tensor)
 
     return network
 
@@ -195,9 +199,45 @@ def main(wts_name, engine_file):
     PLUGIN_LIBRARY = "./build/libyolo_plugins.so"
     ctypes.CDLL(PLUGIN_LIBRARY)
 
+    # if parse_arg(argc, argv):
+    #     wts_name, engine_file, is_p6, gd, gw, img_dir = parse_arg(argc, argv)
+    # else:
+    #     sys.stderr.write("arguments not right!")
+    #     sys.stderr.write("./yolov5 -s [.wts] [.engine] [s/m/l/x/s6/m6/l6/x6 or c/c6 gd gw]  // serialize model to plan file")
+    #     sys.stderr.write("./yolov5 -d [.engine] ../samples  // deserialize plan file and run inference")
+    #     return -1
+    
     flag = build_engine(wts_name, engine_file)
     assert flag, "Build engine failed"
     print("===> Serialized Engine Saved at: ", engine_file)
+
+    # obj = "1"
+    # file_names = read_files_in_dir(img_dir, obj)
+    # if len(wts_name) != 0:
+    #     with open(engine_file, "rb") as f, trt.Runtime(TRT_LOGGER) as runtime:
+    #         engine = runtime.deserialize_cuda_engine(f.read())
+    #         assert engine, "loading engine failed"
+    #         assert engine.num_bindings == 2, "bindings must have two"
+    #         inputs, outputs, bindings, stream = allocate_buffers(engine)
+    #         # inputIndex = engine.get_binding_index(input_name)
+    #         # outputIndex = engine.get_binding_index(output_name)
+    #         # assert inputIndex==0
+    #         # assert outputIndex==1
+    #         with engine.create_execution_context() as context:
+    #             fcount = 0
+    #             for f in range(len(file_names)):
+    #                 fcount += 1
+    #                 if fcount < batch_size and (f + 1) != len(file_names):
+    #                     continue
+    #                 for b in range(fcount):
+    #                     img_file = img_dir+os.sep+file_names[f-fcount+1+b]
+    #                     pr_img = preprocess_img(img_file)
+    #                     if pr_img is None:
+    #                         continue
+    #                     pagelocked_buffer = inputs[0].host
+    #                     np.copyto(pagelocked_buffer, pr_img)
+    #                     output = do_inference(context, bindings=bindings, inputs=inputs, outputs=outputs,
+    #                                           stream=stream)
 
 
 if __name__ == "__main__":

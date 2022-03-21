@@ -182,6 +182,18 @@ class Yolov5TRT(object):
                         categories[int(result_classid[j])], result_scores[j]
                     ),
                 )
+            # Only draw for person
+            # for j in range(len(result_boxes)):
+            #     if int(result_classid[j]) == 0 and result_scores[j]>0.6:
+            #         print("People ", j, ": ", result_scores[j])
+            #         box = result_boxes[j]
+            #         plot_one_box(
+            #             box,
+            #             batch_image_raw[i],
+            #             label="{}:{:.2f}".format(
+            #                 "person", result_scores[j]
+            #             ),
+            #         )
         return batch_image_raw, end - start
 
     def destroy(self):
